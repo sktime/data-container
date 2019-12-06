@@ -1,19 +1,8 @@
 .. -*- mode: rst -*-
 
-|pypi|_ |gitter|_ |Binder|_
+sktime data-container
+======================
 
-.. |pypi| image:: https://img.shields.io/pypi/v/sktime
-.. _pypi: https://pypi.org/project/sktime/
-
-.. |gitter| image:: https://img.shields.io/gitter/room/alan-turing-institute/sktime?logo=gitter
-.. _gitter: https://gitter.im/sktime/community
-
-.. |binder| image:: https://mybinder.org/badge_logo.svg
-.. _Binder: https://mybinder.org/v2/gh/alan-turing-institute/sktime/master?filepath=examples
-
-
-sktime
-======
 This is a companion repository for `sktime <https://github.com/alan-turing-institute/sktime>`__ for the specific
 purpose of designing and implementing a time series data container.
 
