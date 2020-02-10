@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from pandas import Series
 
-from sktime.container.array import TimeDtype, TimeArray
+from extensionarray.array import TimeDtype, TimeArray
 
 _SERIES_WARNING_MSG = """\
     You are passing non-time series data to the TimeSeries constructor. Currently,
@@ -53,7 +53,7 @@ class TimeSeries(Series):
     def __init__(self, data=None, index=None, time_index=None, **kwargs):
         name = kwargs.pop("name", None)
 
-        if isinstance(data, np.ndarray) and :
+        if isinstance(data, np.ndarray):
             data = TimeArray(data, time_index)
 
         if not is_time_series_type(data):
@@ -130,38 +130,3 @@ class TimeSeries(Series):
     @property
     def _constructor(self):
         return TimeSeries
-
-
-
-from sktime.container.array import TimeNPArray
-
-class TimeNPSeries(TimeSeries):
-
-    def __init__(self, data=None, index=None, time_index=None, **kwargs):
-        name = kwargs.pop("name", None)
-
-        if isinstance(data, np.ndarray):
-            data = TimeNPArray(data, time_index)
-
-        if not is_time_series_type(data):
-            # if data is None and dtype is specified (eg from empty overlay
-            # test), specifying dtype raises an error:
-            # https://github.com/pandas-dev/pandas/issues/26469
-            kwargs.pop("dtype", None)
-            # Use Series constructor to handle input data
-            s = pd.Series(data, index=index, name=name, **kwargs)
-            # prevent trying to convert non-time series objects
-            if s.dtype != object:
-                if s.empty:
-                    s = s.astype(object)
-                else:
-                    warnings.warn(_SERIES_WARNING_MSG, FutureWarning, stacklevel=2)
-                    return s
-            index = s.index
-            name = s.name
-
-        super(TimeSeries, self).__init__(data, index=index, name=name, **kwargs)
-
-    @property
-    def _constructor(self):
-        return TimeNPSeries
