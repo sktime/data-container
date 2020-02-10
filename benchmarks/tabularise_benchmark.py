@@ -18,7 +18,7 @@ X.drop('class_val', axis=1, inplace=True)
 """
 
 repeats = 5
-runs = 2000
+runs = 0
 
 
 # **********************************************************************************************************************
@@ -28,4 +28,5 @@ TEST_CODE = """
 tab = Tabulariser()
 X_tab = tab.fit_transform(X)
 """
-print(timeit.repeat(setup=SETUP_CODE, stmt=TEST_CODE, repeat=repeats, number=runs))
+
+timeit.repeat(setup=SETUP_CODE, stmt=TEST_CODE, repeat=repeats, number=runs)

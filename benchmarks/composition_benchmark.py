@@ -24,7 +24,7 @@ X.drop('class_val', axis=1, inplace=True)
 """
 
 repeats = 5
-runs = 2000
+runs = 0
 
 # **********************************************************************************************************************
 # Time the transformations individually
@@ -34,14 +34,14 @@ TEST_CODE = """
 segmenter = RandomIntervalSegmenter(n_intervals='sqrt')
 X_segm = segmenter.fit_transform(X)
 """
-print(timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs))
+timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs)
 
 UP_TO_NOW += TEST_CODE
 TEST_CODE = """
 mean_transformer = RowwiseTransformer(FunctionTransformer(func=np.mean, validate=False))
 X_mean = mean_transformer.fit_transform(X_segm)
 """
-print(timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs))
+timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs)
 
 
 UP_TO_NOW += TEST_CODE
@@ -49,7 +49,7 @@ TEST_CODE = """
 std_transformer = RowwiseTransformer(FunctionTransformer(func=np.std, validate=False))
 X_std = std_transformer.fit_transform(X_segm)
 """
-print(timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs))
+timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs)
 
 
 UP_TO_NOW += TEST_CODE
@@ -57,14 +57,14 @@ TEST_CODE = """
 slope_transformer = RowwiseTransformer(FunctionTransformer(func=time_series_slope, validate=False))
 X_slope = slope_transformer.fit_transform(X_segm)
 """
-print(timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs))
+timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs)
 
 
 UP_TO_NOW += TEST_CODE
 TEST_CODE = """
 X_union = pd.concat([X_mean, X_std, X_slope], axis=1)
 """
-print(timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs))
+timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs)
 
 
 UP_TO_NOW += TEST_CODE
@@ -72,7 +72,7 @@ TEST_CODE = """
 dt = DecisionTreeClassifier()
 dt.fit(X_union, y)
 """
-print(timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs))
+timeit.repeat(setup=UP_TO_NOW, stmt=TEST_CODE, repeat=repeats, number=runs)
 
 
 
@@ -93,4 +93,4 @@ base_estimator = Pipeline(steps, random_state=1)
 base_estimator.fit(X, y)
 """
 
-print(timeit.repeat(setup=SETUP_CODE, stmt=TEST_CODE, repeat=repeats, number=runs))
+timeit.repeat(setup=SETUP_CODE, stmt=TEST_CODE, repeat=repeats, number=runs)
