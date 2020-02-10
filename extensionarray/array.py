@@ -445,6 +445,15 @@ class TimeArray(ExtensionArray):
             return str
         return repr
 
+    # ------------------------------------------------------------------------
+    # Test section of potential includes
+    # ------------------------------------------------------------------------
+
+    def __add__(self, o):
+        if np.all(self.time_index != o.time_index):
+            raise ValueError("The time indices of two TimeArrays that should be added must be identical.")
+
+        return TimeArray(self.data + o.data, time_index=self.time_index)
 
     def map(self, mapper):
         """Map time series using input correspondence (dict, Series, or function).
@@ -471,22 +480,3 @@ class TimeArray(ExtensionArray):
 
         # TODO: deal with mappings similar to pandas, distinguishing agg, transform, apply
         return type(self)(data=mapped, time_index=time_index)
-
-
-
-
-
-class TimeNPArray(TimeArray):
-    def __array__(self, dtype=None):
-        """
-        The numpy array interface.
-
-        Returns
-        -------
-        values : numpy array
-        """
-        n_row = self.data.shape[0]
-        n_time = self.data.shape[1]
-        irreg = np.zeros(n_time + 1)
-
-        return np.array([irreg] + [np.array(self.data[i]) for i in range(n_row)])[1:]
