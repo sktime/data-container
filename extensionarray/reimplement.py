@@ -3,8 +3,6 @@ import pandas as pd
 
 from sktime.transformers.segment import IntervalSegmenter, check_is_fitted
 from sktime.transformers.base import BaseTransformer
-from sktime.utils.data_container import concat_nested_arrays
-from sktime.utils.data_container import tabularize
 from sktime.utils.validation.supervised import validate_X
 
 
