@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from collections import abc
 from pandas import DataFrame
-from sktime.container.array import TimeDtype
-from sktime.container.timeseries import TimeSeries
+from extensionarray.array import TimeDtype
+from extensionarray.timeseries import TimeSeries
 
 class TimeFrame(DataFrame):
     """
@@ -37,9 +37,10 @@ class TimeFrame(DataFrame):
     def _constructor(self):
         return TimeFrame
 
-    @property
-    def _constructor_sliced(self):
-        return TimeSeries
+#    Note: Including the following makes TimeFrame.iloc[0, 0:1] fail because the slice is interpreted incorrectly
+#    @property
+#    def _constructor_sliced(self):
+#        return TimeSeries
 
     def __getitem__(self, key):
         """
@@ -58,23 +59,6 @@ class TimeFrame(DataFrame):
             result.__class__ = DataFrame
         return result
 
+    def tabularise(self):
 
-from sktime.container.timeseries import TimeNPSeries
-
-class TimeNPFrame(DataFrame):
-    def __getitem__(self, key):
-        """
-        If the result is a column containing time series, return a
-        TimeSeries. If it's a DataFrame with a time series column, return a
-        TimeFrame.
-        """
-        result = super(TimeNPFrame, self).__getitem__(key)
-        ts_idxs = [isinstance(d, TimeDtype) for d in self.dtypes]
-        ts_cols = self.columns[ts_idxs]
-        if isinstance(key, str) and key in ts_cols:
-            result.__class__ = TimeNPSeries
-        elif isinstance(result, DataFrame) and np.isin(ts_cols, result.columns):
-            result.__class__ = TimeNPFrame
-        elif isinstance(result, DataFrame) and not np.isin(ts_cols, result.columns):
-            result.__class__ = DataFrame
-        return result
+        return pd.concat([i.tabularise() if isinstance(i, TimeSeries) else i for _, i in self.items()], axis=1)
