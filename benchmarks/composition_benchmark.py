@@ -16,11 +16,15 @@ from sklearn.tree import DecisionTreeClassifier
 X_small = load_gunpoint(return_X_y=False)
 X_medium = pd.concat([X_small for _ in range(20)])
 X_large = pd.concat([X_small for _ in range(200)])
+"""
 
-# Choose a dataset for the analysis
-X = X_medium.copy()
+SEPARATE_Y = """
 y = X['class_val']
 X.drop('class_val', axis=1, inplace=True)
+"""
+
+CHOOSE_X = """
+X = X_medium.copy()
 """
 
 repeats = 5
@@ -29,7 +33,7 @@ runs = 0
 # **********************************************************************************************************************
 # Time the transformations individually
 
-UP_TO_NOW = SETUP_CODE
+UP_TO_NOW = SETUP_CODE + CHOOSE_X + SEPARATE_Y
 TEST_CODE = """
 segmenter = RandomIntervalSegmenter(n_intervals='sqrt')
 X_segm = segmenter.fit_transform(X)
