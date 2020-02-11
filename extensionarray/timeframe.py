@@ -20,8 +20,9 @@ class TimeFrame(DataFrame):
         elif len(args) > 0 and isinstance(args[0], abc.Iterable) and not isinstance(args[0], (str, bytes)):
             data = args[0]
 
+
         # TODO: find a more elegant solution
-        if "data" in kwargs or len(args) > 0 and isinstance(args[0], abc.Iterable) and not isinstance(args[0], (str, bytes)):
+        if "data" in kwargs or len(args) > 0 and isinstance(args[0], abc.Iterable) and not isinstance(args[0], (str, bytes, TimeSeries)):
             if isinstance(data, dict):
                 for i in data.keys():
                     if isinstance(data[i], np.ndarray):
