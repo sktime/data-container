@@ -9,7 +9,18 @@ from sklearn.utils import check_random_state
 
 class RandomIntervalSegmenter(IntervalSegmenter):
     def __init__(self, n_intervals='sqrt', min_length=2, random_state=None):
-        super(IntervalSegmenter, self).__init__(n_intervals='sqrt', min_length=2, random_state=None)
+        if not isinstance(min_length, int):
+            raise ValueError(f"Min_lenght must be an integer, but found: "
+                             f"{type(min_length)}")
+        if min_length < 1:
+            raise ValueError(f"Min_lenght must be an positive integer (>= 1), "
+                             f"but found: {min_length}")
+
+        self.min_length = min_length
+        self.n_intervals = n_intervals
+        self.random_state = random_state
+
+        super(RandomIntervalSegmenter, self).__init__()
 
     def fit(self, X, y=None):
 
