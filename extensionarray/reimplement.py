@@ -109,8 +109,8 @@ class RandomIntervalSegmenter(IntervalSegmenter):
 
 
 class RowwiseTransformer(BaseTransformer):
-    def __init__(self, transformer):
-        self.transformer = transformer
+    def __init__(self, func):
+        self.func = func
 
     def fit(self, X, y=None):
         validate_X(X)
