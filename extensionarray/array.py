@@ -480,3 +480,7 @@ class TimeArray(ExtensionArray):
 
         # TODO: deal with mappings similar to pandas, distinguishing agg, transform, apply
         return type(self)(data=mapped, time_index=time_index)
+
+    def aggregate(self, func):
+
+        return np.apply_along_axis(func, axis=1, arr=self.data)
