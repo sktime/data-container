@@ -37,10 +37,9 @@ class TimeFrame(DataFrame):
     def _constructor(self):
         return TimeFrame
 
-#    Note: Including the following makes TimeFrame.iloc[0, 0:1] fail because the slice is interpreted incorrectly
-#    @property
-#    def _constructor_sliced(self):
-#        return TimeSeries
+    @property
+    def _constructor_sliced(self):
+        return TimeSeries
 
     def __getitem__(self, key):
         """
