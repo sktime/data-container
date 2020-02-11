@@ -123,9 +123,11 @@ class TimeSeries(Series):
                 raise NotImplementedError("np.ufunc not supported yet")
 
             # row-wise access
-            mapped = self._values.map(f)
+            # TODO: define when to use aggregate and when to use map
+            mapped = self._values.aggregate(f)
 
-        return type(self)(data=mapped, index=self.index, name=self.name)
+        # TODO: define what type to return
+        return pd.Series(data=mapped, index=self.index, name=self.name)
 
     @property
     def _constructor(self):
