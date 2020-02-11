@@ -50,10 +50,11 @@ class RandomIntervalSegmenter(IntervalSegmenter):
             raise ValueError('Number of columns of input is different from what was seen'
                              'in `fit`')
 
-        slices = [X.slice_time(np.arange(start=a, stop=b)) for (a, b) in self.intervals_]
+        slices = [X.slice_time(np.arange(start=a, stop=b)).to_frame() for (a, b) in self.intervals_]
 
         for s, i in zip(slices, self.intervals_):
-            s.name = f"{colname}_{i[0]}_{i[1]}"
+            # TODO: make sure there are no duplicate names
+            s.rename(columns={colname: f"{colname}_{i[0]}_{i[1]}"}, inplace=True)
 
         return pd.concat(slices, axis=1)
 
@@ -119,17 +120,14 @@ class RowwiseTransformer(BaseTransformer):
         return self
 
     def transform(self, X, y=None):
-        func = self.transformer.fit_transform
-        return self._apply_rowwise(func, X, y)
+        return self._apply_rowwise(self.func, X, y)
 
     def inverse_transform(self, X, y=None):
         if not hasattr(self.transformer, 'inverse_transform'):
-            raise AttributeError("Transformer does not have an inverse transform method")
-
-        func = self.transformer.inverse_transform
-        return self._apply_rowwise(func, X, y)
+            raise NotImplementedError("Inverse transform not yet implemented")
 
     def _apply_rowwise(self, func, X, y=None):
         check_is_fitted(self, '_is_fitted')
-        Xt = X.apply(self.transformer.fit_transform)
+        Xt = pd.concat([col.apply(func) for _, col in X.items()], axis=1)
+        # Xt.__class__ = TimeFrame   #
         return Xt
