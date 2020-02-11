@@ -130,3 +130,9 @@ class TimeSeries(Series):
     @property
     def _constructor(self):
         return TimeSeries
+
+    @property
+    def _constructor_expanddim(self):
+        from extensionarray.timeframe import TimeFrame
+
+        return TimeFrame
