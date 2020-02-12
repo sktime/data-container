@@ -83,7 +83,7 @@ timeit.repeat(setup=SMALL + SEGM + MEAN + STD + SLOPE + UNION, stmt=TREE, repeat
 # **********************************************************************************************************************
 # Time the entire pipeline at once
 
-PIPELINE = """
+PIPELINE_SETUP = """
 steps = [
     ('segment', RandomIntervalSegmenter(n_intervals='sqrt')),
     ('transform', FeatureUnion([
@@ -94,7 +94,10 @@ steps = [
     ('clf', DecisionTreeClassifier())
 ]
 base_estimator = Pipeline(steps, random_state=1)
+"""
+
+PIPELINE_RUN = """
 base_estimator.fit(X, y)
 """
 
-timeit.repeat(setup=SMALL, stmt=PIPELINE, repeat=repeats, number=runs)
+timeit.repeat(setup=SMALL + PIPELINE_SETUP, stmt=PIPELINE_RUN, repeat=repeats, number=runs)
