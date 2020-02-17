@@ -8,7 +8,7 @@ import numpy as np
 class RandomIntervalSegmenter(BaseTransformer):
     """Transformer that segments time-series into random intervals (which may overlap and there may be duplicates) with random starting points and lengths.
     """
-    def __init__(self, method: str, min_length: int = 2):
+    def __init__(self, n_intervals: str or int, min_length: int = 2):
         """
         Parameters
         ----------
@@ -18,22 +18,22 @@ class RandomIntervalSegmenter(BaseTransformer):
         min_length : int
             The minimum length of an interval.
         """
-        self._method = method
+        self._n_intervals = n_intervals
         self._min_length = min_length
         self._is_fitted = False
 
     @property
-    def method(self):
+    def n_intervals(self) -> str or int:
         """
         Returns
         -------
-        str
-            The segmentation method to be used (only sqrt currently supported).
+        str or int
+            The segmentation method to be used (only sqrt currently supported) to calculate the number of intervals to use, or the number of intervals to use.
         """
-        return self._method
+        return self._n_intervals
 
     @property
-    def min_length(self):
+    def min_length(self) -> int:
         """
         Returns
         -------
@@ -76,33 +76,40 @@ class RandomIntervalSegmenter(BaseTransformer):
         JaggedArray
             The result of segmenting x.
         """
-        if "sqrt" == self._method:
-            # Specify the random number generator and the length of each series (as in the current routine, we assume that all time series have the same length)
 
-            rng = np.random.mtrand._rand
-            len_series = len(x[0, 0])
+        # Get the length of the time series; as in the existing implementation, this assumes that they are all the same length
 
-            # Generate the starts and ends for the intervals
+        rng = np.random.mtrand._rand
+        len_series = len(x[0, 0])
 
+        # Calculate the number of intervals
+
+        if "sqrt" == self._n_intervals:
             n_intervals = np.maximum(1, int(np.sqrt(len_series)))
-            starts = rng.randint(len_series - self._min_length + 1, size=n_intervals)
 
-            if n_intervals == 1:
-                starts = [starts]
-
-            ends = [start + rng.randint(self._min_length, len_series - start + 1) for start in starts]
-            intervals = [(start, end) for start, end in zip(starts, ends)]
-
-            # Generate the 2-D array of sub-arrays to return
-
-            tabularised = awkward_tabularise(x)
-            num_cases = len(tabularised)
-            cases = [[IndexedArray(np.arange(end - start), tabularised[case_num, start:end]) for start, end in intervals] for case_num in np.arange(num_cases)]
-
-            return JaggedArray.fromiter(cases)
+        elif isinstance(self._n_intervals, int):
+            n_intervals = self._n_intervals
 
         else:
-            raise ValueError(f"Unsupported method '{self._method}'")
+            raise ValueError(f"Unsupported _n_intervals '{self._n_intervals}'")
+
+        # Generate the starts and ends for the intervals
+
+        starts = rng.randint(len_series - self._min_length + 1, size=n_intervals)
+
+        if n_intervals == 1:
+            starts = [starts]
+
+        ends = [start + rng.randint(self._min_length, len_series - start + 1) for start in starts]
+        intervals = [(start, end) for start, end in zip(starts, ends)]
+
+        # Generate the 2-D array of sub-arrays to return
+
+        tabularised = awkward_tabularise(x)
+        num_cases = len(tabularised)
+        cases = [[IndexedArray(np.arange(end - start), tabularised[case_num, start:end]) for start, end in intervals] for case_num in np.arange(num_cases)]
+
+        return JaggedArray.fromiter(cases)
 
 
 class UniversalFunctionTransformer(BaseTransformer):
