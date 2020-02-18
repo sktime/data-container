@@ -1,4 +1,4 @@
-from awkwardarray.utils import awkward_slope_func, awkward_tabularise, awkward_arrays_differ, awkward_generate_dummy_data
+from awkwardarray.utils import awkward_slope_func, awkward_tabularize, awkward_arrays_differ, awkward_generate_dummy_data
 from sktime.utils.time_series import time_series_slope
 from sklearn.tree import DecisionTreeClassifier
 from awkward import JaggedArray
@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     # Tabularise the data (only works if all series are of the same length, but this is the current assumption of the existing method)
 
-    jagged_array_tabularised = awkward_tabularise(X)
+    jagged_array_tabularised = awkward_tabularize(X)
 
     # Apply some ufuncs to all of the time series
 

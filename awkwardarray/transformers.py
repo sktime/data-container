@@ -1,5 +1,5 @@
 from sktime.transformers.base import BaseTransformer
-from awkwardarray.utils import awkward_tabularise
+from awkwardarray.utils import awkward_tabularize
 from awkward import IndexedArray, JaggedArray
 from typing import List, Tuple
 import numpy as np
@@ -101,11 +101,24 @@ class RandomIntervalSegmenter(BaseTransformer):
             starts = [starts]
 
         ends = [start + rng.randint(self._min_length, len_series - start + 1) for start in starts]
+        # intervals_ = np.column_stack([starts, ends])
+        #
+        # intervals = []
+        # arr = awkward_tabularize(x)
+        # for start, end in intervals_:
+        #     interval = arr[:, start:end]
+        #     intervals.append(interval)
+        #
+        # # Return nested pandas DataFrame.
+        # Xt = pd.DataFrame(concat_nested_arrays(intervals, return_arrays=True))
+        # Xt.columns = colnames
+        # return Xt
+
         intervals = [(start, end) for start, end in zip(starts, ends)]
 
         # Generate the 2-D array of sub-arrays to return
 
-        tabularised = awkward_tabularise(x)
+        tabularised = awkward_tabularize(x)
         num_cases = len(tabularised)
         cases = [[IndexedArray(np.arange(end - start), tabularised[case_num, start:end]) for start, end in intervals] for case_num in np.arange(num_cases)]
 

@@ -7,18 +7,19 @@ import numpy as np
 
 # Specify how many the provided code should be executed for each timing, and the number of times this process should be repeated
 
-runs = 50
-repeats = 5
+runs = 3
+repeats = 3
 
 # Specify the code that should get run before any timing information is calculated using Awkward Array
 
 AWKWARD_SETUP_CODE = """
 from awkwardarray.transformers import RandomIntervalSegmenter, FeatureUnionTransformer, UniversalFunctionTransformer, GenericFunctionTransformer
-from awkwardarray.utils import awkward_build, awkward_slope_func
+from awkwardarray.utils import awkward_build, awkward_slope_func, awkward_tabularize
 from sklearn.tree import DecisionTreeClassifier
 from sktime.datasets import load_gunpoint
 from sktime.pipeline import Pipeline
 import pandas as pd
+import numpy as np
 
 X_small = load_gunpoint(return_X_y=False)
 X_medium = pd.concat([X_small for _ in range(20)])
@@ -35,12 +36,22 @@ X = awkward_build(X)
 
 AWKWARD_UP_TO_NOW = AWKWARD_SETUP_CODE
 AWKWARD_TEST_CODE = """
+X_tabularized = awkward_tabularize(X)
+"""
+awkward_tabularize_timings = timeit.repeat(setup=AWKWARD_UP_TO_NOW, stmt=AWKWARD_TEST_CODE, repeat=repeats, number=runs)
+awkward_tabularize_timings = [timing/runs for timing in awkward_tabularize_timings]
+print(f"\nAwkward Array Tabularize: {awkward_tabularize_timings}")
+
+# Apply a random interval segmenter to the dataset using Awkward Array
+
+AWKWARD_UP_TO_NOW += AWKWARD_TEST_CODE
+AWKWARD_TEST_CODE = """
 segmenter = RandomIntervalSegmenter(n_intervals=3)
 X_segmented = segmenter.fit_transform(X)
 """
 awkward_segment_timings = timeit.repeat(setup=AWKWARD_UP_TO_NOW, stmt=AWKWARD_TEST_CODE, repeat=repeats, number=runs)
 awkward_segment_timings = [timing/runs for timing in awkward_segment_timings]
-print(f"\nAwkward Array Segmenter: {awkward_segment_timings}")
+print(f"Awkward Array Segmenter: {awkward_segment_timings}")
 
 # Calculate the mean for the dataset using Awkward Array
 
@@ -79,9 +90,7 @@ print(f"Awkward Array Slope: {awkward_slope_timings}")
 
 AWKWARD_UP_TO_NOW += AWKWARD_TEST_CODE
 AWKWARD_TEST_CODE = """
-transformers = [('mean', UniversalFunctionTransformer("mean")), ('std', UniversalFunctionTransformer("std")), ('slope', GenericFunctionTransformer(awkward_slope_func, True))]
-feature_transformer = FeatureUnionTransformer(transformers)
-features_combined = feature_transformer.fit_transform(X_segmented)
+features_combined = np.hstack([transformed.regular() for transformed in [X_mean, X_std, X_slope]])
 """
 awkward_union_timings = timeit.repeat(setup=AWKWARD_UP_TO_NOW, stmt=AWKWARD_TEST_CODE, repeat=repeats, number=runs)
 awkward_union_timings = [timing/runs for timing in awkward_union_timings]
@@ -123,6 +132,7 @@ from sktime.transformers.segment import RandomIntervalSegmenter
 from sktime.transformers.compose import RowwiseTransformer
 from sktime.utils.time_series import time_series_slope
 from sktime.pipeline import Pipeline, FeatureUnion
+from sktime.utils.data_container import tabularize
 from sktime.datasets import load_gunpoint
 import pandas as pd
 import numpy as np
@@ -140,12 +150,22 @@ X.drop('class_val', axis=1, inplace=True)
 
 DATAFRAME_UP_TO_NOW = DATAFRAME_SETUP_CODE
 DATAFRAME_TEST_CODE = """
+X_tabularized = tabularize(X,return_array=True)
+"""
+dataframe_tabularize_timings = timeit.repeat(setup=DATAFRAME_UP_TO_NOW, stmt=DATAFRAME_TEST_CODE, repeat=repeats, number=runs)
+dataframe_tabularize_timings = [timing/runs for timing in dataframe_tabularize_timings]
+print(f"\nDataFrame Tabularize: {dataframe_tabularize_timings}")
+
+# Apply a random interval segmenter to the dataset using nested DataFrames
+
+DATAFRAME_UP_TO_NOW += DATAFRAME_TEST_CODE
+DATAFRAME_TEST_CODE = """
 segmenter = RandomIntervalSegmenter(n_intervals=3)
 X_segmented = segmenter.fit_transform(X)
 """
 dataframe_segment_timings = timeit.repeat(setup=DATAFRAME_UP_TO_NOW, stmt=DATAFRAME_TEST_CODE, repeat=repeats, number=runs)
 dataframe_segment_timings = [timing/runs for timing in dataframe_segment_timings]
-print(f"\nDataFrame Segmenter: {dataframe_segment_timings}")
+print(f"DataFrame Segmenter: {dataframe_segment_timings}")
 
 # Calculate the mean for the dataset using nested DataFrames
 
@@ -185,6 +205,7 @@ print(f"DataFrame Slope: {dataframe_slope_timings}")
 DATAFRAME_UP_TO_NOW += DATAFRAME_TEST_CODE
 DATAFRAME_TEST_CODE = """
 X_union = pd.concat([X_mean, X_std, X_slope], axis=1)
+X_union = X_union.to_numpy()
 """
 dataframe_union_timings = timeit.repeat(setup=DATAFRAME_UP_TO_NOW, stmt=DATAFRAME_TEST_CODE, repeat=repeats, number=runs)
 dataframe_union_timings = [timing/runs for timing in dataframe_union_timings]
@@ -223,6 +244,7 @@ print(f"DataFrame Pipeline: {dataframe_pipeline_timings}")
 
 # Obtain the minimum (or typical best case scenario) for each test for each implementation
 
+awkward_tabularize = np.min(awkward_tabularize_timings)
 awkward_segment = np.min(awkward_segment_timings)
 awkward_mean = np.min(awkward_mean_timings)
 awkward_std = np.min(awkward_std_timings)
@@ -231,6 +253,7 @@ awkward_union = np.min(awkward_union_timings)
 awkward_classifier = np.min(awkward_classifier_timings)
 awkward_pipeline = np.min(awkward_pipeline_timings)
 
+dataframe_tabularize = np.min(dataframe_tabularize_timings)
 dataframe_segment = np.min(dataframe_segment_timings)
 dataframe_mean = np.min(dataframe_mean_timings)
 dataframe_std = np.min(dataframe_std_timings)
@@ -239,18 +262,20 @@ dataframe_union = np.min(dataframe_union_timings)
 dataframe_classifier = np.min(dataframe_classifier_timings)
 dataframe_pipeline = np.min(dataframe_pipeline_timings)
 
-segment_improvement = dataframe_segment / awkward_segment
-mean_improvement = dataframe_mean / awkward_mean
-std_improvement = dataframe_std / awkward_std
-slope_improvement = dataframe_slope / awkward_slope
-union_improvement = dataframe_union / awkward_union
-classifier_improvement = dataframe_classifier / awkward_classifier
-pipeline_improvement = dataframe_pipeline / awkward_pipeline
+tabularize_multiplier = dataframe_tabularize / awkward_tabularize
+segment_multiplier = dataframe_segment / awkward_segment
+mean_multiplier = dataframe_mean / awkward_mean
+std_multiplier = dataframe_std / awkward_std
+slope_multiplier = dataframe_slope / awkward_slope
+union_multiplier = dataframe_union / awkward_union
+classifier_multiplier = dataframe_classifier / awkward_classifier
+pipeline_multiplier = dataframe_pipeline / awkward_pipeline
 
-print(f"\nSegment Multiplier: {segment_improvement}")
-print(f"Mean Multiplier: {mean_improvement}")
-print(f"Std Multiplier: {std_improvement}")
-print(f"Slope Multiplier: {slope_improvement}")
-print(f"Union Multiplier: {union_improvement}")
-print(f"Classifier Multiplier: {classifier_improvement}")
-print(f"Pipeline Multiplier: {pipeline_improvement}")
+print(f"\nTabularize Multiplier: {tabularize_multiplier}")
+print(f"Segment Multiplier: {segment_multiplier}")
+print(f"Mean Multiplier: {mean_multiplier}")
+print(f"Std Multiplier: {std_multiplier}")
+print(f"Slope Multiplier: {slope_multiplier}")
+print(f"Union Multiplier: {union_multiplier}")
+print(f"Classifier Multiplier: {classifier_multiplier}")
+print(f"Pipeline Multiplier: {pipeline_multiplier}")
