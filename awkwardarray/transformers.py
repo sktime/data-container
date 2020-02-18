@@ -1,6 +1,7 @@
+from awkwardarray.utils import awkward_tabularize, awkward_detabularize
 from sktime.transformers.base import BaseTransformer
-from awkwardarray.utils import awkward_tabularize
 from awkward import IndexedArray, JaggedArray
+from sklearn.exceptions import NotFittedError
 from typing import List, Tuple
 import numpy as np
 
@@ -125,6 +126,76 @@ class RandomIntervalSegmenter(BaseTransformer):
         return JaggedArray.fromiter(cases)
 
 
+class TabularTransformer(BaseTransformer):
+    """A transformer that turns time series/panel data into tabular data.
+
+    This is useful for transforming time-series/panel data into a format that is accepted by standard validation learning algorithms (as in sklearn).
+    """
+    def __init__(self):
+        self._counts = None
+        self._content_counts = None
+
+    def fit(self, x: JaggedArray, y=None):
+        """Empty fit function that does nothing.
+
+        Parameters
+        ----------
+        x : JaggedArray
+            The training input samples.
+
+        y : None
+            None as it is transformer on X.
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        self._is_fitted = True
+        return self
+
+    def transform(self, x: JaggedArray, y=None) -> np.ndarray:
+        """Tabularizes a specified JaggedArray.
+
+        Parameters
+        ----------
+        x : JaggedArray
+            The array to tabularize.
+
+        y : None
+            None as it is transformer on x.
+
+        Returns
+        -------
+        np.ndarray
+            x tabularised.
+        """
+        self._counts = x.counts
+        self._content_counts = x.content.counts
+        return awkward_tabularize(x)
+
+    def inverse_transform(self, x: np.ndarray, y=None):
+        """Detabularizes a specified Numpy Array.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The array to detabularize.
+
+        y : None
+            None as it is transformer on x.
+
+        Returns
+        -------
+        JaggedArray
+            x detabularised.
+        """
+        if self._counts is None or self._content_counts is None:
+            raise NotFittedError("This has not yet been fitted in transform")
+        else:
+            return awkward_detabularize(x, self._content_counts, self._counts)
+
+
 class UniversalFunctionTransformer(BaseTransformer):
     """A convenience wrapper that applies a Universal Function (ufunc) defined as an instance method to an Awkward array.
     """
@@ -161,7 +232,7 @@ class UniversalFunctionTransformer(BaseTransformer):
             The training input samples.
 
         y : None
-            None as it is transformer on X.
+            None as it is transformer on x.
 
         Returns
         -------
@@ -180,7 +251,7 @@ class UniversalFunctionTransformer(BaseTransformer):
             The training input samples.
 
         y : None
-            None as it is transformer on X.
+            None as it is transformer on x.
 
         Returns
         -------
@@ -248,7 +319,7 @@ class GenericFunctionTransformer(BaseTransformer):
             The training input samples.
 
         y : None
-            None as it is transformer on X.
+            None as it is transformer on x.
 
         Returns
         -------
@@ -267,7 +338,7 @@ class GenericFunctionTransformer(BaseTransformer):
             The training input samples.
 
         y : None
-            None as it is transformer on X.
+            None as it is transformer on x.
 
         Returns
         -------
@@ -317,7 +388,7 @@ class FeatureUnionTransformer(BaseTransformer):
             The training input samples.
 
         y : None
-            None as it is transformer on X.
+            None as it is transformer on x.
 
         Returns
         -------
@@ -339,7 +410,7 @@ class FeatureUnionTransformer(BaseTransformer):
             The training input samples.
 
         y : None
-            None as it is transformer on X.
+            None as it is transformer on x.
 
         Returns
         -------
