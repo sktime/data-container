@@ -26,7 +26,7 @@ def awkward_build(data_frame: pd.DataFrame) -> JaggedArray:
     return JaggedArray.fromiter(cases)
 
 
-def awkward_tabularise(jagged_array: JaggedArray) -> np.ndarray:
+def awkward_tabularize(jagged_array: JaggedArray) -> np.ndarray:
     """Tabularises a 2-D JaggedArray of sub-arrays.
 
     Parameters
@@ -39,7 +39,7 @@ def awkward_tabularise(jagged_array: JaggedArray) -> np.ndarray:
     np.ndarray
         jagged_array tabularised.
     """
-    return np.vstack([case.flatten() for case in jagged_array])
+    return jagged_array.flatten().regular()
 
 
 def awkward_generate_index(jagged_array: JaggedArray) -> JaggedArray:
