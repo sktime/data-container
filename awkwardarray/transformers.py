@@ -1,7 +1,8 @@
 from awkwardarray.utils import awkward_tabularize, awkward_detabularize
 from sktime.transformers.base import BaseTransformer
-from awkward import IndexedArray, JaggedArray
+from awkward import JaggedArray
 from sklearn.exceptions import NotFittedError
+from scipy.ndimage.interpolation import shift
 from typing import List, Tuple
 import numpy as np
 
@@ -86,44 +87,46 @@ class RandomIntervalSegmenter(BaseTransformer):
         # Calculate the number of intervals
 
         if "sqrt" == self._n_intervals:
-            n_intervals = np.maximum(1, int(np.sqrt(len_series)))
+            num_intervals = np.maximum(1, int(np.sqrt(len_series)))
 
         elif isinstance(self._n_intervals, int):
-            n_intervals = self._n_intervals
+            num_intervals = self._n_intervals
 
         else:
             raise ValueError(f"Unsupported _n_intervals '{self._n_intervals}'")
 
         # Generate the starts and ends for the intervals
 
-        starts = rng.randint(len_series - self._min_length + 1, size=n_intervals)
+        starts = rng.randint(len_series - self._min_length + 1, size=num_intervals)
 
-        if n_intervals == 1:
+        if num_intervals == 1:
             starts = [starts]
 
+        starts = np.array(starts)
+
         ends = [start + rng.randint(self._min_length, len_series - start + 1) for start in starts]
-        # intervals_ = np.column_stack([starts, ends])
-        #
-        # intervals = []
-        # arr = awkward_tabularize(x)
-        # for start, end in intervals_:
-        #     interval = arr[:, start:end]
-        #     intervals.append(interval)
-        #
-        # # Return nested pandas DataFrame.
-        # Xt = pd.DataFrame(concat_nested_arrays(intervals, return_arrays=True))
-        # Xt.columns = colnames
-        # return Xt
+        intervals = zip(starts, ends)
 
-        intervals = [(start, end) for start, end in zip(starts, ends)]
+        # Generate the array to return
 
-        # Generate the 2-D array of sub-arrays to return
+        tabularized = awkward_tabularize(x)
+        num_cases = len(tabularized)
+        interval_lengths = ends - starts
+        features = []
 
-        tabularised = awkward_tabularize(x)
-        num_cases = len(tabularised)
-        cases = [[IndexedArray(np.arange(end - start), tabularised[case_num, start:end]) for start, end in intervals] for case_num in np.arange(num_cases)]
+        for start, end in intervals:
+            feature = tabularized[:, start:end]
+            features.append(feature.content)
 
-        return JaggedArray.fromiter(cases)
+        column_stack = np.hstack(features)
+        offsets = shift(np.resize(interval_lengths, num_intervals * num_cases + 1).cumsum(), 1)
+        content_array = JaggedArray.fromoffsets(offsets, column_stack)
+
+        num_intervals_array = np.array([num_intervals])
+        offsets = shift(np.resize(num_intervals_array, num_cases + 1).cumsum(), 1)
+        to_return = JaggedArray.fromoffsets(offsets, content_array)
+
+        return to_return
 
 
 class TabularTransformer(BaseTransformer):
@@ -167,19 +170,20 @@ class TabularTransformer(BaseTransformer):
 
         Returns
         -------
-        np.ndarray
+        JaggedArray
             x tabularised.
         """
         self._counts = x.counts
         self._content_counts = x.content.counts
+
         return awkward_tabularize(x)
 
-    def inverse_transform(self, x: np.ndarray, y=None):
+    def inverse_transform(self, x: JaggedArray, y=None):
         """Detabularizes a specified Numpy Array.
 
         Parameters
         ----------
-        x : np.ndarray
+        x : JaggedArray
             The array to detabularize.
 
         y : None

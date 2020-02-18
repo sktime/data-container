@@ -7,13 +7,13 @@ import numpy as np
 
 # Specify how many the provided code should be executed for each timing, and the number of times this process should be repeated
 
-runs = 3
-repeats = 3
+runs = 50
+repeats = 5
 
 # Specify the code that should get run before any timing information is calculated using Awkward Array
 
 AWKWARD_SETUP_CODE = """
-from awkwardarray.transformers import RandomIntervalSegmenter, FeatureUnionTransformer, UniversalFunctionTransformer, GenericFunctionTransformer
+from awkwardarray.transformers import RandomIntervalSegmenter, FeatureUnionTransformer, UniversalFunctionTransformer, GenericFunctionTransformer, TabularTransformer
 from awkwardarray.utils import awkward_build, awkward_slope_func, awkward_tabularize
 from sklearn.tree import DecisionTreeClassifier
 from sktime.datasets import load_gunpoint
@@ -32,15 +32,26 @@ X.drop('class_val', axis=1, inplace=True)
 X = awkward_build(X)
 """
 
-# Apply a random interval segmenter to the dataset using Awkward Array
+# Apply a tabularizer to the dataset using Awkward Array
 
 AWKWARD_UP_TO_NOW = AWKWARD_SETUP_CODE
 AWKWARD_TEST_CODE = """
-X_tabularized = awkward_tabularize(X)
+tabularizer = TabularTransformer()
+X_tabularized = tabularizer.fit_transform(X)
 """
 awkward_tabularize_timings = timeit.repeat(setup=AWKWARD_UP_TO_NOW, stmt=AWKWARD_TEST_CODE, repeat=repeats, number=runs)
 awkward_tabularize_timings = [timing/runs for timing in awkward_tabularize_timings]
 print(f"\nAwkward Array Tabularize: {awkward_tabularize_timings}")
+
+# Apply a detabularizer to the dataset using Awkward Array
+
+AWKWARD_UP_TO_NOW += AWKWARD_TEST_CODE
+AWKWARD_TEST_CODE = """
+X_detabularized = tabularizer.inverse_transform(X)
+"""
+awkward_detabularize_timings = timeit.repeat(setup=AWKWARD_UP_TO_NOW, stmt=AWKWARD_TEST_CODE, repeat=repeats, number=runs)
+awkward_detabularize_timings = [timing/runs for timing in awkward_detabularize_timings]
+print(f"Awkward Array Detabularize: {awkward_detabularize_timings}")
 
 # Apply a random interval segmenter to the dataset using Awkward Array
 
@@ -129,7 +140,7 @@ DATAFRAME_SETUP_CODE = """
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import FunctionTransformer
 from sktime.transformers.segment import RandomIntervalSegmenter
-from sktime.transformers.compose import RowwiseTransformer
+from sktime.transformers.compose import RowwiseTransformer, Tabularizer
 from sktime.utils.time_series import time_series_slope
 from sktime.pipeline import Pipeline, FeatureUnion
 from sktime.utils.data_container import tabularize
@@ -146,15 +157,26 @@ y = X['class_val']
 X.drop('class_val', axis=1, inplace=True)
 """
 
-# Apply a random interval segmenter to the dataset using nested DataFrames
+# Apply a tabularizer to the dataset using nested DataFrames
 
 DATAFRAME_UP_TO_NOW = DATAFRAME_SETUP_CODE
 DATAFRAME_TEST_CODE = """
-X_tabularized = tabularize(X,return_array=True)
+tabularizer = Tabularizer(check_input=False)
+X_tabularized = tabularizer.fit_transform(X)
 """
 dataframe_tabularize_timings = timeit.repeat(setup=DATAFRAME_UP_TO_NOW, stmt=DATAFRAME_TEST_CODE, repeat=repeats, number=runs)
 dataframe_tabularize_timings = [timing/runs for timing in dataframe_tabularize_timings]
 print(f"\nDataFrame Tabularize: {dataframe_tabularize_timings}")
+
+# Apply a detabularizer to the dataset using nested DataFrames
+
+DATAFRAME_UP_TO_NOW += DATAFRAME_TEST_CODE
+DATAFRAME_TEST_CODE = """
+X_detabularized = tabularizer.inverse_transform(X_tabularized)
+"""
+dataframe_detabularize_timings = timeit.repeat(setup=DATAFRAME_UP_TO_NOW, stmt=DATAFRAME_TEST_CODE, repeat=repeats, number=runs)
+dataframe_detabularize_timings = [timing/runs for timing in dataframe_detabularize_timings]
+print(f"DataFrame Detabularize: {dataframe_detabularize_timings}")
 
 # Apply a random interval segmenter to the dataset using nested DataFrames
 
@@ -245,6 +267,7 @@ print(f"DataFrame Pipeline: {dataframe_pipeline_timings}")
 # Obtain the minimum (or typical best case scenario) for each test for each implementation
 
 awkward_tabularize = np.min(awkward_tabularize_timings)
+awkward_detabularize = np.min(awkward_detabularize_timings)
 awkward_segment = np.min(awkward_segment_timings)
 awkward_mean = np.min(awkward_mean_timings)
 awkward_std = np.min(awkward_std_timings)
@@ -254,6 +277,7 @@ awkward_classifier = np.min(awkward_classifier_timings)
 awkward_pipeline = np.min(awkward_pipeline_timings)
 
 dataframe_tabularize = np.min(dataframe_tabularize_timings)
+dataframe_detabularize = np.min(dataframe_detabularize_timings)
 dataframe_segment = np.min(dataframe_segment_timings)
 dataframe_mean = np.min(dataframe_mean_timings)
 dataframe_std = np.min(dataframe_std_timings)
@@ -263,6 +287,7 @@ dataframe_classifier = np.min(dataframe_classifier_timings)
 dataframe_pipeline = np.min(dataframe_pipeline_timings)
 
 tabularize_multiplier = dataframe_tabularize / awkward_tabularize
+detabularize_multiplier = dataframe_detabularize / awkward_detabularize
 segment_multiplier = dataframe_segment / awkward_segment
 mean_multiplier = dataframe_mean / awkward_mean
 std_multiplier = dataframe_std / awkward_std
@@ -272,6 +297,7 @@ classifier_multiplier = dataframe_classifier / awkward_classifier
 pipeline_multiplier = dataframe_pipeline / awkward_pipeline
 
 print(f"\nTabularize Multiplier: {tabularize_multiplier}")
+print(f"Detabularize Multiplier: {detabularize_multiplier}")
 print(f"Segment Multiplier: {segment_multiplier}")
 print(f"Mean Multiplier: {mean_multiplier}")
 print(f"Std Multiplier: {std_multiplier}")
