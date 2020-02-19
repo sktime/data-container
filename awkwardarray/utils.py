@@ -80,10 +80,9 @@ def awkward_generate_index(jagged_array: JaggedArray) -> JaggedArray:
     index_array = jagged_array.ones_like()
     index_array.content.content = np.cumsum(index_array.content.content) - 1
 
-    mod_array = np.cumsum(shift(index_array.count().content, 1, cval=0))
-    mod_array[0] = mod_array[1]
+    subtraction_array = np.cumsum(shift(index_array.count().content, 1, cval=0))
+    index_array.content = index_array.content - subtraction_array
 
-    index_array.content = index_array.content % mod_array
     return index_array
 
 
@@ -131,10 +130,233 @@ def awkward_arrays_differ(array_a: JaggedArray, array_b: JaggedArray, threshold:
     bool
         True if a pair of elements in array_a and array_b differ by more than threshold, False otherwise.
     """
-    array_diff = (array_a - array_b)
-    array_diff_max = np.abs(array_diff.max())
 
-    return (array_diff_max > threshold).any()
+    # Compare the types of the arrays and their content
+
+    if type(array_a) != JaggedArray:
+        return True
+
+    if type(array_a) != type(array_b):
+        return True
+
+    if not isinstance(array_a.content, type(array_b.content)):
+        return True
+
+    # Compare the contents of the arrays
+
+    try:
+        array_diff = (array_a - array_b)
+        array_diff_max = np.abs(array_diff.max())
+        threshold_exceeded = (array_diff_max > threshold)
+
+        if isinstance(threshold_exceeded, np.ndarray):
+            return threshold_exceeded.any()
+
+        elif isinstance(threshold_exceeded.content, np.ndarray):
+            return threshold_exceeded.content.any()
+
+        elif isinstance(threshold_exceeded.content, JaggedArray):
+            if isinstance(threshold_exceeded.content.content, np.ndarray):
+                return threshold_exceeded.content.content.any()
+
+        # Cannot deal with these types of arguments
+
+        raise ValueError("Unsupported argument types")
+
+    except (ValueError, TypeError):
+        # Only reason an Exception could be thrown is that dimensions are not compatible
+
+        return True
+
+
+def data_frames_differ(data_frame_a: pd.DataFrame, data_frame_b: pd.DataFrame, threshold: float) -> bool:
+    """Determines if two specified DataFrames differ.
+
+    Parameters
+    ----------
+    data_frame_a : pd.DataFrame
+        The 1st DataFrame whose elements should be compared.
+
+    data_frame_b : pd.DataFrame
+        The 2nd DataFrame whose elements should be compared.
+
+    threshold : float
+        A float value giving the maximum value that array elements can differ before the arrays are considered different.
+
+    Returns
+    -------
+    bool
+        True if a pair of elements in array_a and array_b differ by more than threshold, False otherwise.
+    """
+
+    # Compare the types of the objects and their indexes
+
+    if type(data_frame_a) != pd.DataFrame:
+        return True
+
+    if type(data_frame_a) != type(data_frame_b):
+        return True
+
+    if not data_frame_a.index.equals(data_frame_b.index):
+        return True
+
+    # We do not compare names as some functions generate dummy names instead of the originals names
+
+    if data_frame_a.columns.size != data_frame_b.columns.size:
+        return True
+
+    # Compare the contents of the arrays
+
+    try:
+        num_cases = data_frame_a.index.size
+        num_features = data_frame_a.columns.size
+
+        for case_num in range(num_cases):
+            for feature_num in range(num_features):
+                # Get the features for the array and DataFrame
+
+                data_frame_a_feature = data_frame_a.values[case_num, feature_num]
+                data_frame_b_feature = data_frame_b.values[case_num, feature_num]
+
+                if type(data_frame_a_feature) != pd.Series:
+                    return True
+
+                if type(data_frame_b_feature) != pd.Series:
+                    return True
+
+                # Examine the values of the features
+
+                data_frame_a_feature = data_frame_a_feature.values
+                data_frame_b_feature = data_frame_b_feature.values
+
+                if type(data_frame_a_feature) != np.ndarray:
+                    return True
+
+                if type(data_frame_b_feature) != np.ndarray:
+                    return True
+
+                # Compare the features
+
+                array_diff = (data_frame_a_feature - data_frame_b_feature)
+                array_diff_max = np.abs(array_diff.max())
+
+                if array_diff_max > threshold:
+                    return True
+
+        return False
+
+    except (ValueError, TypeError):
+        # Only reason an Exception could be thrown is that dimensions are not compatible
+
+        return True
+
+
+def awkward_array_data_frame_differ(array: JaggedArray, data_frame: pd.DataFrame, threshold: float, sub_arrays: bool = True) -> bool:
+    """Determines if a specified Awkward Array and DataFrame differ.
+
+    Parameters
+    ----------
+    array : JaggedArray
+        The array whose sub-arrays should be compared.
+
+    data_frame : pd.DataFrame
+        The DataFrame whose elements should be compared.
+
+    threshold : float
+        A float value giving the maximum value that array elements can differ before the arrays are considered different.
+
+    sub_arrays: bool
+        True if array has sub-arrays, False otherwise.
+
+    Returns
+    -------
+    bool
+        True if a pair of elements in array_a and array_b differ by more than threshold, False otherwise.
+    """
+
+    # Compare the types of the objects and their indexes
+
+    if type(array) != JaggedArray:
+        return True
+
+    if type(data_frame) != pd.DataFrame:
+        return True
+
+    if sub_arrays:
+        if type(array.content) != JaggedArray:
+            return True
+
+        if type(array.content.content) != np.ndarray:
+            return True
+    else:
+        if type(array.content) != np.ndarray:
+            return True
+
+    # Compare the number of cases
+
+    array_len = len(array)
+    data_frame_len = len(data_frame)
+
+    if array_len != data_frame_len:
+        return True
+
+    # Compare the contents of the array and the DataFrame
+
+    try:
+        for case_num in range(array_len):
+            # Get the cases for the array and DataFrame
+
+            array_case = array[case_num]
+            data_frame_case = data_frame.iloc[case_num, :]
+
+            # Compare the number of features for each case
+
+            array_num_features = len(array_case)
+            data_frame_num_features = len(data_frame_case)
+
+            if array_num_features != data_frame_num_features:
+                return True
+
+            # Examine the features
+
+            for feature_num in range(array_num_features):
+                # Get the features for the array and DataFrame
+
+                array_feature = array_case[feature_num]
+                data_frame_feature = data_frame_case.iloc[feature_num]
+
+                # Examine the values of the features
+
+                if sub_arrays:
+                    if type(array_feature) != np.ndarray:
+                        return True
+
+                    if data_frame_num_features == 1:
+                        if type(data_frame_feature.values) != np.ndarray:
+                            return True
+                        else:
+                            data_frame_feature = data_frame_feature.values
+                    else:
+                        if type(data_frame_feature) != np.ndarray:
+                            return True
+
+                    array_diff = (array_feature - data_frame_feature)
+                    array_diff_max = np.abs(array_diff.max())
+                    threshold_exceeded = array_diff_max > threshold
+
+                else:
+                    diff = np.abs(array_feature - data_frame_feature)
+                    threshold_exceeded = diff > threshold
+
+                if threshold_exceeded:
+                    return True
+
+        return False
+
+    except (ValueError, TypeError) as e:
+        # Only reason an Exception could be thrown is that dimensions are not compatible
+
+        return True
 
 
 def awkward_generate_dummy_data() -> (JaggedArray, JaggedArray):
