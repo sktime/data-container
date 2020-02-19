@@ -7,7 +7,7 @@ import numpy as np
 
 # Specify how many the provided code should be executed for each timing, and the number of times this process should be repeated
 
-runs = 50
+runs = 5
 repeats = 5
 
 # Specify the code that should get run before any timing information is calculated using Awkward Array

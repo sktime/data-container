@@ -107,7 +107,7 @@ class RandomIntervalSegmenter(BaseTransformer):
         ends = [start + rng.randint(self._min_length, len_series - start + 1) for start in starts]
         intervals = zip(starts, ends)
 
-        # Generate the array to return
+        # Get the data for the features
 
         tabularized = awkward_tabularize(x)
         num_cases = len(tabularized)
@@ -116,11 +116,18 @@ class RandomIntervalSegmenter(BaseTransformer):
 
         for start, end in intervals:
             feature = tabularized[:, start:end]
-            features.append(feature.content)
+            feature_array = feature.content
+            feature_array = feature_array.reshape((num_cases, -1))
+            features.append(feature_array)
 
-        column_stack = np.hstack(features)
+        # Generate the content array for the array to return
+
+        content_array_content = np.hstack(features)
+        content_array_content = content_array_content.reshape(-1)
         offsets = shift(np.resize(interval_lengths, num_intervals * num_cases + 1).cumsum(), 1)
-        content_array = JaggedArray.fromoffsets(offsets, column_stack)
+        content_array = JaggedArray.fromoffsets(offsets, content_array_content)
+
+        # Generate the array to return
 
         num_intervals_array = np.array([num_intervals])
         offsets = shift(np.resize(num_intervals_array, num_cases + 1).cumsum(), 1)
