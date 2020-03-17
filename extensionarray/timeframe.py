@@ -60,5 +60,9 @@ class TimeFrame(DataFrame):
         return result
 
     def tabularise(self):
+        types = self.dtypes
 
-        return pd.concat([i.tabularise() if isinstance(i, TimeSeries) else i for _, i in self.items()], axis=1)
+        # TODO: this is a hack to deal with the loss of timeseries class when subselectin (see note at
+        #       _constructor_sliced above), look into better/more robust options to identify timeseries columns
+        return pd.concat([self.__getitem__(c).tabularise() if isinstance(t, TimeDtype) else self.__getitem__(c) \
+                          for c, t in zip(types.index, types.values)], axis=1)
