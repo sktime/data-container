@@ -172,7 +172,7 @@ print(f"\nExtension Array Tabularize: {extarray_tabularize_timings}")
 # Apply a random interval segmenter to the dataset using Extension Array
 EXTARRAY_UP_TO_NOW += EXTARRAY_TEST_CODE
 EXTARRAY_TEST_CODE = """
-segmenter = RandomIntervalSegmenter(n_intervals=3)
+segmenter = RandomIntervalSegmenter(n_intervals=3, random_state=2)
 X_segmented = segmenter.fit_transform(X)
 """
 extarray_segment_timings = timeit.repeat(setup=EXTARRAY_UP_TO_NOW, stmt=EXTARRAY_TEST_CODE, repeat=repeats, number=runs)
@@ -296,7 +296,7 @@ print(f"\nDataFrame Tabularize: {dataframe_tabularize_timings}")
 
 DATAFRAME_UP_TO_NOW += DATAFRAME_TEST_CODE
 DATAFRAME_TEST_CODE = """
-segmenter = RandomIntervalSegmenter(n_intervals=3)
+segmenter = RandomIntervalSegmenter(n_intervals=3, random_state=2)
 X_segmented = segmenter.fit_transform(X)
 """
 dataframe_segment_timings = timeit.repeat(setup=DATAFRAME_UP_TO_NOW, stmt=DATAFRAME_TEST_CODE, repeat=repeats, number=runs)
