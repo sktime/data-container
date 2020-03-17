@@ -7,8 +7,8 @@ import numpy as np
 
 # Specify how many the provided code should be executed for each timing, and the number of times this process should be repeated
 
-runs = 20
-repeats = 20
+runs = 50
+repeats = 4
 
 
 # **********************************************************************************************************************
@@ -46,16 +46,6 @@ X_tabularized = tabularizer.fit_transform(X)
 awkward_tabularize_timings = timeit.repeat(setup=AWKWARD_UP_TO_NOW, stmt=AWKWARD_TEST_CODE, repeat=repeats, number=runs)
 awkward_tabularize_timings = [timing/runs for timing in awkward_tabularize_timings]
 print(f"\nAwkward Array Tabularize: {awkward_tabularize_timings}")
-
-# Apply a detabularizer to the dataset using Awkward Array
-
-AWKWARD_UP_TO_NOW += AWKWARD_TEST_CODE
-AWKWARD_TEST_CODE = """
-X_detabularized = tabularizer.inverse_transform(X)
-"""
-awkward_detabularize_timings = timeit.repeat(setup=AWKWARD_UP_TO_NOW, stmt=AWKWARD_TEST_CODE, repeat=repeats, number=runs)
-awkward_detabularize_timings = [timing/runs for timing in awkward_detabularize_timings]
-print(f"Awkward Array Detabularize: {awkward_detabularize_timings}")
 
 # Apply a random interval segmenter to the dataset using Awkward Array
 
@@ -302,16 +292,6 @@ dataframe_tabularize_timings = timeit.repeat(setup=DATAFRAME_UP_TO_NOW, stmt=DAT
 dataframe_tabularize_timings = [timing/runs for timing in dataframe_tabularize_timings]
 print(f"\nDataFrame Tabularize: {dataframe_tabularize_timings}")
 
-# Apply a detabularizer to the dataset using nested DataFrames
-
-DATAFRAME_UP_TO_NOW += DATAFRAME_TEST_CODE
-DATAFRAME_TEST_CODE = """
-X_detabularized = tabularizer.inverse_transform(X_tabularized)
-"""
-dataframe_detabularize_timings = timeit.repeat(setup=DATAFRAME_UP_TO_NOW, stmt=DATAFRAME_TEST_CODE, repeat=repeats, number=runs)
-dataframe_detabularize_timings = [timing/runs for timing in dataframe_detabularize_timings]
-print(f"DataFrame Detabularize: {dataframe_detabularize_timings}")
-
 # Apply a random interval segmenter to the dataset using nested DataFrames
 
 DATAFRAME_UP_TO_NOW += DATAFRAME_TEST_CODE
@@ -410,7 +390,6 @@ print(f"DataFrame Pipeline: {dataframe_pipeline_timings}")
 # Obtain the mean for each test for each implementation
 
 awkward_tabularize = np.mean(awkward_tabularize_timings)
-awkward_detabularize = np.mean(awkward_detabularize_timings)
 awkward_segment = np.mean(awkward_segment_timings)
 awkward_mean = np.mean(awkward_mean_timings)
 awkward_std = np.mean(awkward_std_timings)
@@ -429,7 +408,6 @@ extarray_classifier = np.mean(extarray_classifier_timings)
 extarray_pipeline = np.mean(extarray_pipeline_timings)
 
 dataframe_tabularize = np.mean(dataframe_tabularize_timings)
-dataframe_detabularize = np.mean(dataframe_detabularize_timings)
 dataframe_segment = np.mean(dataframe_segment_timings)
 dataframe_mean = np.mean(dataframe_mean_timings)
 dataframe_std = np.mean(dataframe_std_timings)
@@ -439,7 +417,6 @@ dataframe_classifier = np.mean(dataframe_classifier_timings)
 dataframe_pipeline = np.mean(dataframe_pipeline_timings)
 
 awk_tabularize_multiplier = dataframe_tabularize / awkward_tabularize
-awk_detabularize_multiplier = dataframe_detabularize / awkward_detabularize
 awk_segment_multiplier = dataframe_segment / awkward_segment
 awk_mean_multiplier = dataframe_mean / awkward_mean
 awk_std_multiplier = dataframe_std / awkward_std
@@ -448,9 +425,8 @@ awk_union_multiplier = dataframe_union / awkward_union
 awk_classifier_multiplier = dataframe_classifier / awkward_classifier
 awk_pipeline_multiplier = dataframe_pipeline / awkward_pipeline
 
-print("awkwardarray approach:")
+print("\nawkwardarray approach:")
 print(f"\nTabularize Multiplier: {awk_tabularize_multiplier}")
-print(f"Detabularize Multiplier: {awk_detabularize_multiplier}")
 print(f"Segment Multiplier: {awk_segment_multiplier}")
 print(f"Mean Multiplier: {awk_mean_multiplier}")
 print(f"Std Multiplier: {awk_std_multiplier}")
@@ -460,19 +436,17 @@ print(f"Classifier Multiplier: {awk_classifier_multiplier}")
 print(f"Pipeline Multiplier: {awk_pipeline_multiplier}")
 
 
-ext_tabularize_multiplier = dataframe_tabularize / awkward_tabularize
-ext_detabularize_multiplier = dataframe_detabularize / awkward_detabularize
-ext_segment_multiplier = dataframe_segment / awkward_segment
-ext_mean_multiplier = dataframe_mean / awkward_mean
-ext_std_multiplier = dataframe_std / awkward_std
-ext_slope_multiplier = dataframe_slope / awkward_slope
-ext_union_multiplier = dataframe_union / awkward_union
-ext_classifier_multiplier = dataframe_classifier / awkward_classifier
-ext_pipeline_multiplier = dataframe_pipeline / awkward_pipeline
+ext_tabularize_multiplier = dataframe_tabularize / extarray_tabularize
+ext_segment_multiplier = dataframe_segment / extarray_segment
+ext_mean_multiplier = dataframe_mean / extarray_mean
+ext_std_multiplier = dataframe_std / extarray_std
+ext_slope_multiplier = dataframe_slope / extarray_slope
+ext_union_multiplier = dataframe_union / extarray_union
+ext_classifier_multiplier = dataframe_classifier / extarray_classifier
+ext_pipeline_multiplier = dataframe_pipeline / extarray_pipeline
 
-print("ExtensionArray approach:")
-print(f"\nTabularize Multiplier: {ext_tabularize_multiplier}")
-print(f"Detabularize Multiplier: {ext_detabularize_multiplier}")
+print("\nExtensionArray approach:")
+print(f"Tabularize Multiplier: {ext_tabularize_multiplier}")
 print(f"Segment Multiplier: {ext_segment_multiplier}")
 print(f"Mean Multiplier: {ext_mean_multiplier}")
 print(f"Std Multiplier: {ext_std_multiplier}")
