@@ -5,6 +5,8 @@ from sktime.transformers.segment import IntervalSegmenter, check_is_fitted
 from sktime.transformers.base import BaseTransformer
 from sktime.utils.validation.supervised import validate_X
 from sklearn.utils import check_random_state
+from extensionarray.timeseries import TimeSeries
+from extensionarray.array import TimeDtype
 
 class RandomIntervalSegmenter(IntervalSegmenter):
     def __init__(self, n_intervals='sqrt', min_length=2, random_state=None):
@@ -289,6 +291,9 @@ def extarray_slope_func(ts):
     np.ndarray
         A 1-D array of slope values for ts.
     """
+    if not isinstance(ts, TimeSeries) and isinstance(ts, pd.Series) and isinstance(ts.dtype, TimeDtype):
+        ts = TimeSeries(ts)
+
     x = ts.time_index
     y = ts.values.data
 
